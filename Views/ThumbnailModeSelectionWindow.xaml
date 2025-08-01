@@ -1,0 +1,54 @@
+<Window x:Class="Mangaanya.Views.ThumbnailModeSelectionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="サムネイル生成モード選択" 
+        Height="200" Width="350"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        FontSize="12">
+    
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- 説明とオプション -->
+        <StackPanel Grid.Row="0">
+            <TextBlock x:Name="FileCountText" 
+                       Text="対象ファイル数: 0件"
+                       Margin="0,0,0,12"
+                       FontSize="12"/>
+            
+            <RadioButton x:Name="OnlyMissingRadio" 
+                         Content="未生成のみ生成（推奨）"
+                         IsChecked="True"
+                         Margin="0,0,0,8"
+                         FontSize="12"/>
+            
+            <RadioButton x:Name="RegenerateAllRadio" 
+                         Content="全て再生成"
+                         Margin="0,0,0,8"
+                         FontSize="12"/>
+        </StackPanel>
+        
+        <!-- ボタン -->
+        <StackPanel Grid.Row="1" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Right"
+                    Margin="0,12,0,0">
+            <Button Content="実行" 
+                    Width="80" Height="30" 
+                    Margin="0,0,8,0"
+                    FontSize="12"
+                    IsDefault="True"
+                    Click="ExecuteButton_Click"/>
+            <Button Content="キャンセル" 
+                    Width="80" Height="30"
+                    FontSize="12"
+                    IsCancel="True"
+                    Click="CancelButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>
