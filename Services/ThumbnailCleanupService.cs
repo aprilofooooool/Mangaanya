@@ -21,7 +21,7 @@ namespace Mangaanya.Services
         {
             _repository = repository;
             _logger = logger;
-            
+
             // サムネイル保存ディレクトリを取得（ThumbnailServiceOptimizedと同じ方法）
             _thumbnailDirectory = GetThumbnailDirectory();
         }
@@ -33,7 +33,7 @@ namespace Mangaanya.Services
         {
             var appDirectory = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
             var thumbnailDir = Path.Combine(appDirectory!, "thumbnails");
-            
+
             try
             {
                 Directory.CreateDirectory(thumbnailDir);
@@ -57,7 +57,7 @@ namespace Mangaanya.Services
             {
                 if (!Directory.Exists(_thumbnailDirectory))
                 {
-                    
+
                     return CleanupResult.CreateSuccess(0);
                 }
 
@@ -84,15 +84,15 @@ namespace Mangaanya.Services
                 _logger.LogInformation("ディスク上のサムネイルファイル: {Count}件", diskThumbnailFiles.Count);
 
                 // デバッグ用：最初の10件のファイル名を比較
-                _logger.LogDebug("DB登録ファイル名（最初の10件）: {Files}", 
+                _logger.LogDebug("DB登録ファイル名（最初の10件）: {Files}",
                     string.Join(", ", dbThumbnailFiles.Take(10)));
-                _logger.LogDebug("ディスクファイル名（最初の10件）: {Files}", 
+                _logger.LogDebug("ディスクファイル名（最初の10件）: {Files}",
                     string.Join(", ", diskThumbnailFiles.Take(10)));
 
                 // 孤立ファイルを削除
                 var orphanedCount = 0;
                 var checkedCount = 0;
-                
+
                 foreach (var diskFile in diskThumbnailFiles)
                 {
                     checkedCount++;
@@ -103,7 +103,7 @@ namespace Mangaanya.Services
                         {
                             File.Delete(fullPath);
                             orphanedCount++;
-                            
+
                             // 最初の10件の削除ファイルをログ出力
                             if (orphanedCount <= 10)
                             {
@@ -115,16 +115,16 @@ namespace Mangaanya.Services
                             _logger.LogWarning(ex, "孤立サムネイル削除に失敗: {File}", diskFile);
                         }
                     }
-                    
+
                     // 進捗を1000件ごとに報告
                     if (checkedCount % 1000 == 0)
                     {
-                        _logger.LogDebug("チェック進捗: {Checked}/{Total}件, 削除済み: {Deleted}件", 
+                        _logger.LogDebug("チェック進捗: {Checked}/{Total}件, 削除済み: {Deleted}件",
                             checkedCount, diskThumbnailFiles.Count, orphanedCount);
                     }
                 }
 
-                _logger.LogInformation("孤立サムネイルクリーンアップ完了: チェック={Checked}件, 削除={Deleted}件", 
+                _logger.LogInformation("孤立サムネイルクリーンアップ完了: チェック={Checked}件, 削除={Deleted}件",
                     checkedCount, orphanedCount);
                 return CleanupResult.CreateSuccess(orphanedCount);
             }
@@ -133,60 +133,6 @@ namespace Mangaanya.Services
                 _logger.LogError(ex, "孤立サムネイルクリーンアップ中にエラーが発生しました");
                 return CleanupResult.CreateError(ex.Message);
             }
-        }
-
-        /// <summary>
-        /// 指定した日数より古いサムネイルファイルを削除します
-        /// </summary>
-        /// <param name="maxAgeDays">保持する最大日数</param>
-        /// <returns>クリーンアップ結果</returns>
-        public async Task<CleanupResult> CleanupOldThumbnailsAsync(int maxAgeDays)
-        {
-            return await Task.Run(() =>
-            {
-                try
-                {
-                    if (!Directory.Exists(_thumbnailDirectory))
-                    {
-                        
-                        return CleanupResult.CreateSuccess(0);
-                    }
-
-                    var cutoffDate = DateTime.Now.AddDays(-maxAgeDays);
-                    var allFiles = Directory.GetFiles(_thumbnailDirectory, "*.jpg")
-                        .Where(f => !string.Equals(Path.GetFileName(f), "default_thumbnail.jpg", StringComparison.OrdinalIgnoreCase))
-                        .ToArray();
-                    
-                    var oldFiles = allFiles
-                        .Where(f => File.GetLastAccessTime(f) < cutoffDate)
-                        .ToList();
-
-                    var deletedCount = 0;
-                    foreach (var oldFile in oldFiles)
-                    {
-                        try
-                        {
-                            File.Delete(oldFile);
-                            deletedCount++;
-                            _logger.LogDebug("古いサムネイルを削除しました: {File}", Path.GetFileName(oldFile));
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning(ex, "古いサムネイル削除に失敗: {File}", Path.GetFileName(oldFile));
-                        }
-                    }
-
-                    _logger.LogInformation("古いサムネイルクリーンアップ完了: {Count}件削除 (基準日: {CutoffDate:yyyy/MM/dd})", 
-                        deletedCount, cutoffDate);
-                    
-                    return CleanupResult.CreateSuccess(deletedCount);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "古いサムネイルクリーンアップ中にエラーが発生しました");
-                    return CleanupResult.CreateError(ex.Message);
-                }
-            });
         }
 
         /// <summary>
@@ -238,7 +184,7 @@ DB登録サムネイル（有効）: {dbThumbnailFiles.Count}件
 {string.Join("\n", missingFiles.Take(10))}
 ";
 
-                _logger.LogInformation("サムネイル診断完了: 孤立={Orphaned}件, 欠損={Missing}件", 
+                _logger.LogInformation("サムネイル診断完了: 孤立={Orphaned}件, 欠損={Missing}件",
                     orphanedFiles.Count, missingFiles.Count);
 
                 return result;
@@ -273,58 +219,16 @@ DB登録サムネイル（有効）: {dbThumbnailFiles.Count}件
                 var diskThumbnailFiles = Directory.GetFiles(_thumbnailDirectory, "*.jpg")
                     .Where(f => !string.Equals(Path.GetFileName(f), "default_thumbnail.jpg", StringComparison.OrdinalIgnoreCase))
                     .ToArray();
-                
+
                 var orphanedCount = diskThumbnailFiles.Count(f => !dbThumbnailFiles.Contains(Path.GetFileName(f)));
-                
-                
+
+
                 return orphanedCount;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "孤立サムネイル数取得中にエラーが発生しました");
                 return 0;
-            }
-        }
-
-        /// <summary>
-        /// サムネイル件数をチェックし、指定件数を超えている場合のみ古いファイルを削除します
-        /// </summary>
-        /// <param name="maxAgeDays">保持する最大日数</param>
-        /// <param name="maxFileCount">削除を実行する最小ファイル数</param>
-        /// <returns>クリーンアップ結果</returns>
-        public async Task<CleanupResult> CleanupOldThumbnailsIfExceedsCountAsync(int maxAgeDays, int maxFileCount)
-        {
-            try
-            {
-                if (!Directory.Exists(_thumbnailDirectory))
-                {
-                    
-                    return CleanupResult.CreateSuccess(0);
-                }
-
-                // 現在のサムネイル件数を取得（default_thumbnail.jpgを除外）
-                var allFiles = Directory.GetFiles(_thumbnailDirectory, "*.jpg")
-                    .Where(f => !string.Equals(Path.GetFileName(f), "default_thumbnail.jpg", StringComparison.OrdinalIgnoreCase))
-                    .ToArray();
-                var currentCount = allFiles.Length;
-
-                
-
-                // 件数が閾値を超えていない場合は削除しない
-                if (currentCount <= maxFileCount)
-                {
-                    _logger.LogInformation("サムネイル件数が閾値以下のため、クリーンアップをスキップします（{CurrentCount}件 <= {MaxCount}件）", currentCount, maxFileCount);
-                    return CleanupResult.CreateSuccess(0);
-                }
-
-                // 閾値を超えている場合は通常のクリーンアップを実行
-                _logger.LogInformation("サムネイル件数が閾値を超えているため、クリーンアップを実行します（{CurrentCount}件 > {MaxCount}件）", currentCount, maxFileCount);
-                return await CleanupOldThumbnailsAsync(maxAgeDays);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "条件付きサムネイルクリーンアップ中にエラーが発生しました");
-                return CleanupResult.CreateError(ex.Message);
             }
         }
     }

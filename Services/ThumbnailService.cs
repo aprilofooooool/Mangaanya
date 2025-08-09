@@ -59,14 +59,33 @@ namespace Mangaanya.Services
 
                 _logger.LogInformation("サムネイル生成開始: {FilePath}", mangaFile.FilePath);
 
-                // サムネイルファイル名を生成（ファイルパスのハッシュを使用）
-                var fileHash = GetFileHash(mangaFile.FilePath);
-                var thumbnailFileName = $"{fileHash}.jpg";
+                // IDが無効な場合はエラー
+                if (mangaFile.Id <= 0)
+                {
+                    _logger.LogWarning("無効なIDを持つファイルのため、サムネイルを生成できません: {FilePath}", mangaFile.FilePath);
+                    return new ThumbnailGenerationResult
+                    {
+                        Success = false,
+                        ErrorMessage = "データベースに未登録のファイルです。",
+                        MangaFile = mangaFile
+                    };
+                }
+
+                // サムネイルファイル名を生成（IDを使用）
+                var thumbnailFileName = $"{mangaFile.Id}.jpg";
                 var thumbnailPath = Path.Combine(_thumbnailDirectory, thumbnailFileName);
 
                 // 既にサムネイルが存在する場合はそれを返す
                 if (File.Exists(thumbnailPath))
                 {
+                    // パスがDBと異なっていれば更新する
+                    if (mangaFile.ThumbnailPath != thumbnailPath)
+                    {
+                        mangaFile.ThumbnailPath = thumbnailPath;
+                        mangaFile.ThumbnailCreated = File.GetLastWriteTime(thumbnailPath);
+                        await _repository.UpdateAsync(mangaFile).ConfigureAwait(false);
+                    }
+
                     return new ThumbnailGenerationResult
                     {
                         Success = true,
@@ -117,7 +136,7 @@ namespace Mangaanya.Services
         }
 
         public async Task<List<ThumbnailGenerationResult>> GenerateThumbnailsBatchAsync(
-            IEnumerable<MangaFile> mangaFiles, 
+            IEnumerable<MangaFile> mangaFiles,
             IProgress<ThumbnailProgress>? progress = null,
             CancellationToken cancellationToken = default,
             bool skipExisting = true)
@@ -134,13 +153,13 @@ namespace Mangaanya.Services
                     break;
 
                 var file = fileList[i];
-                
+
                 // 既存のサムネイルをスキップするかチェック
                 if (skipExisting && ThumbnailExists(file.ThumbnailPath))
                 {
                     skippedCount++;
-                    
-                    
+
+
                     // スキップした場合も成功として扱う
                     results.Add(new ThumbnailGenerationResult
                     {
@@ -148,7 +167,7 @@ namespace Mangaanya.Services
                         ThumbnailPath = file.ThumbnailPath,
                         MangaFile = file
                     });
-                    
+
                     // 進捗報告（スキップ）
                     progress?.Report(new ThumbnailProgress
                     {
@@ -157,12 +176,12 @@ namespace Mangaanya.Services
                         CurrentFileName = file.FileName,
                         Status = "スキップ"
                     });
-                    
+
                     continue;
                 }
-                
+
                 processedCount++;
-                
+
                 // 進捗報告
                 progress?.Report(new ThumbnailProgress
                 {
@@ -269,7 +288,7 @@ namespace Mangaanya.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "デフォルトサムネイル画像作成中にエラーが発生しました");
-                
+
                 // 最終的なフォールバック
                 var fallbackBitmap = new BitmapImage();
                 fallbackBitmap.BeginInit();
@@ -283,10 +302,10 @@ namespace Mangaanya.Services
         {
             try
             {
-                
-                
+
+
                 using var archive = ArchiveFactory.Open(archivePath);
-                
+
                 // 画像ファイルを探す
                 var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp" };
                 var imageEntry = archive.Entries
@@ -319,7 +338,7 @@ namespace Mangaanya.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "アーカイブからの画像抽出中にエラーが発生しました: {ArchivePath}", archivePath);
-                
+
                 // エラーの場合はダミー画像を使用
                 try
                 {
@@ -343,33 +362,33 @@ namespace Mangaanya.Services
                 await Task.Run(() =>
                 {
                     using var originalImage = Image.FromStream(imageStream);
-                    
+
                     // 固定サイズのキャンバス（600x400ピクセル）
                     const int canvasWidth = 600;
                     const int canvasHeight = 400;
-                    
+
                     // アスペクト比を維持して縮小サイズを計算
                     var scaledSize = CalculateThumbnailSize(originalImage.Width, originalImage.Height, canvasWidth, canvasHeight);
-                    
+
                     // 中央配置のための座標を計算
                     var x = (canvasWidth - scaledSize.Width) / 2;
                     var y = (canvasHeight - scaledSize.Height) / 2;
-                    
+
                     using var thumbnail = new Bitmap(canvasWidth, canvasHeight);
                     using var graphics = Graphics.FromImage(thumbnail);
-                    
+
                     // 高品質だが軽量な縮小設定に変更
                     graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBilinear;
                     graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
                     graphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighSpeed;
                     graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighSpeed;
-                    
+
                     // 背景を白にする（JPGは透明をサポートしないため）
                     graphics.Clear(Color.White);
-                    
+
                     // 画像を中央に描画
                     graphics.DrawImage(originalImage, x, y, scaledSize.Width, scaledSize.Height);
-                    
+
                     // JPG形式で品質設定付きで保存
                     var quality = _config.GetSetting<int>("ThumbnailJpegQuality", 85);
                     SaveAsJpeg(thumbnail, thumbnailPath, quality);
@@ -396,12 +415,6 @@ namespace Mangaanya.Services
             return (newWidth, newHeight);
         }
 
-        private string GetFileHash(string filePath)
-        {
-            // ファイルパスのハッシュを生成（簡易版）
-            return Math.Abs(filePath.GetHashCode()).ToString("X8");
-        }
-
         private void CreateDefaultThumbnail()
         {
             try
@@ -412,14 +425,14 @@ namespace Mangaanya.Services
                 // 600x400のダミー画像を作成
                 using var bitmap = new Bitmap(600, 400);
                 using var graphics = Graphics.FromImage(bitmap);
-                
+
                 // 背景を透明にする
                 graphics.Clear(Color.Transparent);
-                
+
                 // 枠線を描画
                 using var pen = new Pen(Color.Gray, 1);
                 graphics.DrawRectangle(pen, 0, 0, 119, 79);
-                
+
                 // テキストを描画
                 using var font = new Font("Arial", 9, FontStyle.Bold);
                 using var brush = new SolidBrush(Color.DarkGray);
@@ -428,7 +441,7 @@ namespace Mangaanya.Services
                 var x = (120 - textSize.Width) / 2;
                 var y = (80 - textSize.Height) / 2;
                 graphics.DrawString(text, font, brush, x, y);
-                
+
                 // JPG形式で保存
                 var quality = _config.GetSetting<int>("ThumbnailJpegQuality", 85);
                 SaveAsJpeg(bitmap, _defaultThumbnailPath, quality);
@@ -452,18 +465,18 @@ namespace Mangaanya.Services
                 if (!string.IsNullOrEmpty(appDirectory))
                 {
                     var thumbnailDir = Path.Combine(appDirectory, "thumbnails");
-                    
+
                     // ディレクトリが存在しない場合は作成を試行
                     if (!Directory.Exists(thumbnailDir))
                     {
                         Directory.CreateDirectory(thumbnailDir);
                     }
-                    
+
                     // 書き込み権限をテスト
                     var testFile = Path.Combine(thumbnailDir, "write_test.tmp");
                     File.WriteAllText(testFile, "test");
                     File.Delete(testFile);
-                    
+
                     _logger.LogInformation("サムネイル保存先: アプリフォルダ ({Directory})", thumbnailDir);
                     return thumbnailDir;
                 }
@@ -472,18 +485,18 @@ namespace Mangaanya.Services
             {
                 _logger.LogWarning(ex, "アプリフォルダへのアクセスに失敗しました。APPDATAにフォールバックします");
             }
-            
+
             // フォールバック: APPDATAフォルダを使用
             try
             {
                 var appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Mangaanya");
                 var thumbnailDir = Path.Combine(appDataPath, "thumbnails");
-                
+
                 if (!Directory.Exists(thumbnailDir))
                 {
                     Directory.CreateDirectory(thumbnailDir);
                 }
-                
+
                 _logger.LogInformation("サムネイル保存先: APPDATAフォルダ ({Directory})", thumbnailDir);
                 return thumbnailDir;
             }
