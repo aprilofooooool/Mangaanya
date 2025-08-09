@@ -11,7 +11,7 @@ namespace Mangaanya.Services
         Task<int> InsertBatchAsync(IEnumerable<MangaFile> mangaFiles);
         Task UpdateAsync(MangaFile manga);
         Task UpdateBatchAsync(IEnumerable<MangaFile> mangaFiles);
-        Task UpdateFilePathsBatchAsync(IEnumerable<(int Id, string NewFilePath)> filePathUpdates);
+        Task UpdateFilePathsBatchAsync(IEnumerable<(int Id, string NewFilePath, string? NewThumbnailPath)> filePathUpdates);
         Task DeleteAsync(int id);
         Task<int> DeleteByFolderPathAsync(string folderPath);
         Task<int> GetTotalCountAsync();
