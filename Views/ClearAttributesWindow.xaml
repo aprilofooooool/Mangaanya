@@ -1,0 +1,48 @@
+<Window x:Class="Mangaanya.Views.ClearAttributesWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="属性情報のクリア" 
+        Height="350" Width="400"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BackgroundBrush}"
+        FontSize="12">
+    
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- ヘッダー -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,15">
+            <TextBlock Text="クリアする属性情報を選択してください" 
+                       FontSize="16" 
+                       FontWeight="Bold" 
+                       Margin="0,0,0,5"/>
+            <TextBlock Text="{Binding SelectedFilesCount, StringFormat='{}{0}件のファイルが選択されています'}" 
+                       Foreground="Gray"/>
+        </StackPanel>
+        
+        <!-- 属性リスト -->
+        <StackPanel Grid.Row="1" Margin="0,0,0,15">
+            <CheckBox x:Name="TitleCheckBox" Content="タイトル" Margin="0,5,0,5"/>
+            <CheckBox x:Name="OriginalAuthorCheckBox" Content="原作者" Margin="0,5,0,5"/>
+            <CheckBox x:Name="ArtistCheckBox" Content="作画者" Margin="0,5,0,5"/>
+            <CheckBox x:Name="AuthorReadingCheckBox" Content="作者読み" Margin="0,5,0,5"/>
+            <CheckBox x:Name="VolumeNumberCheckBox" Content="巻数" Margin="0,5,0,5"/>
+            <CheckBox x:Name="GenreCheckBox" Content="ジャンル" Margin="0,5,0,5"/>
+            <CheckBox x:Name="PublishDateCheckBox" Content="発行日" Margin="0,5,0,5"/>
+            <CheckBox x:Name="PublisherCheckBox" Content="出版社" Margin="0,5,0,5"/>
+            <CheckBox x:Name="TagsCheckBox" Content="タグ" Margin="0,5,0,5"/>
+            <CheckBox x:Name="AIProcessedCheckBox" Content="AI処理済みフラグ" Margin="0,5,0,5"/>
+        </StackPanel>
+        
+        <!-- ボタン -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button x:Name="SelectAllButton" Content="すべて選択" Width="100" Margin="0,0,10,0" Click="SelectAllButton_Click"/>
+            <Button x:Name="ClearButton" Content="クリア実行" Width="100" Margin="0,0,10,0" Click="ClearButton_Click"/>
+            <Button x:Name="CancelButton" Content="キャンセル" Width="80" Click="CancelButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>
