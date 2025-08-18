@@ -1,0 +1,424 @@
+<Window x:Class="Mangaanya.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:converters="clr-namespace:Mangaanya.Converters"
+        Title="設定" 
+        Height="600" Width="650"
+        WindowStartupLocation="CenterOwner"
+        FontSize="12">
+    
+    <Window.InputBindings>
+        <KeyBinding Key="R" Modifiers="Ctrl" Command="{Binding ResetSettingsCommand}"/>
+        <KeyBinding Key="S" Modifiers="Ctrl" Command="{Binding SaveSettingsCommand}"/>
+        <KeyBinding Key="W" Modifiers="Ctrl" Command="{Binding CancelCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}"/>
+    </Window.InputBindings>
+    
+    <Window.Resources>
+        <converters:MemorySizeConverter x:Key="MemorySizeConverter"/>
+        <Style x:Key="GroupBoxStyle" TargetType="GroupBox">
+            <Setter Property="Margin" Value="0,0,0,15"/>
+            <Setter Property="Padding" Value="10"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#CCCCCC"/>
+        </Style>
+        <Style x:Key="SliderStyle" TargetType="Slider">
+            <Setter Property="Margin" Value="0,0,10,5"/>
+            <Setter Property="IsSnapToTickEnabled" Value="True"/>
+        </Style>
+        <Style x:Key="LabelTextBlockStyle" TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,0,10,5"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="ValueTextBlockStyle" TargetType="TextBlock">
+            <Setter Property="TextAlignment" Value="Right"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Width" Value="80"/>
+        </Style>
+        <Style x:Key="HintTextBlockStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="Gray"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
+    </Window.Resources>
+    
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+
+        
+        <!-- 設定項目 -->
+        <TabControl Grid.Row="0">
+            <TabItem Header="表示設定">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <GroupBox Header="表示設定" Style="{StaticResource GroupBoxStyle}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="サムネイル表示:" Style="{StaticResource LabelTextBlockStyle}"/>
+                        <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <CheckBox Content="標準" IsChecked="{Binding IsStandardThumbnailEnabled}" Margin="0,0,15,0"/>
+                            <CheckBox Content="縮小" IsChecked="{Binding IsCompactThumbnailEnabled}"/>
+                        </StackPanel>
+                        
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="列:" Style="{StaticResource LabelTextBlockStyle}" Margin="0,10,0,5"/>
+                        
+                        <ItemsControl Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" ItemsSource="{Binding ColumnSettings}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <CheckBox Content="{Binding Header}" IsChecked="{Binding IsVisible}" Margin="0,5,0,5"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                    </Grid>
+                </GroupBox>
+                </ScrollViewer>
+            </TabItem>
+            
+            <TabItem Header="サムネイル設定">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <!-- ポップアップ設定 -->
+                    <GroupBox Header="ポップアップ設定" Style="{StaticResource GroupBoxStyle}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="自動非表示時間:" Style="{StaticResource LabelTextBlockStyle}"/>
+                            <Slider Grid.Row="0" Grid.Column="1" 
+                                    x:Name="PopupHideDelaySlider"
+                                    Minimum="1" Maximum="10" 
+                                    TickFrequency="0.5" 
+                                    Value="{Binding ThumbnailPopupHideDelay}"
+                                    Style="{StaticResource SliderStyle}"/>
+                            <TextBlock Grid.Row="0" Grid.Column="2" 
+                                       Text="{Binding ThumbnailPopupHideDelay, StringFormat={}{0:F1}秒}" 
+                                       Style="{StaticResource ValueTextBlockStyle}"/>
+                            
+                            <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" 
+                                       Text="1秒 〜 10秒" 
+                                       Style="{StaticResource HintTextBlockStyle}"/>
+                            
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="離脱時遅延:" Style="{StaticResource LabelTextBlockStyle}"/>
+                            <Slider Grid.Row="2" Grid.Column="1" 
+                                    x:Name="PopupLeaveDelaySlider"
+                                    Minimum="0.1" Maximum="2" 
+                                    TickFrequency="0.1" 
+                                    Value="{Binding ThumbnailPopupLeaveDelay}"
+                                    Style="{StaticResource SliderStyle}"/>
+                            <TextBlock Grid.Row="2" Grid.Column="2" 
+                                       Text="{Binding ThumbnailPopupLeaveDelay, StringFormat={}{0:F1}秒}" 
+                                       Style="{StaticResource ValueTextBlockStyle}"/>
+                            
+                            <TextBlock Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" 
+                                       Text="0.1秒 〜 2秒（マウスが離れてから非表示になるまでの時間）" 
+                                       Style="{StaticResource HintTextBlockStyle}"/>
+                        </Grid>
+                    </GroupBox>
+                </ScrollViewer>
+            </TabItem>
+            
+            <TabItem Header="タグ取得設定">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <GroupBox Header="タグ取得設定" Style="{StaticResource GroupBoxStyle}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="同時処理数:" Style="{StaticResource LabelTextBlockStyle}"/>
+                        <Slider Grid.Row="0" Grid.Column="1" 
+                                x:Name="AIRequestsSlider"
+                                Minimum="10" Maximum="100" 
+                                TickFrequency="10" 
+                                ValueChanged="AIRequestsSlider_ValueChanged"
+                                Style="{StaticResource SliderStyle}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="2" 
+                                   Text="{Binding MaxConcurrentAIRequests}" 
+                                   Width="40" TextAlignment="Right" VerticalAlignment="Center"/>
+                        
+                        <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" 
+                                   Text="10 〜 100 リクエスト" 
+                                   Style="{StaticResource HintTextBlockStyle}"/>
+                        
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="GEMINI APIキー:" Style="{StaticResource LabelTextBlockStyle}"/>
+                        <Grid Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <PasswordBox x:Name="ApiKeyPasswordBox" Grid.Column="0" Margin="0,0,10,0" Height="25"/>
+                            <Button Grid.Column="1" Content="表示" Width="50" Click="ShowApiKey_Click"/>
+                        </Grid>
+                        
+                        <TextBlock Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" 
+                                   Text="タグ取得機能を使用するには、Google Gemini APIキーが必要です" 
+                                   Style="{StaticResource HintTextBlockStyle}" Margin="0,5,0,0"/>
+                    </Grid>
+                </GroupBox>
+                </ScrollViewer>
+            </TabItem>
+            
+
+            <TabItem Header="ビューア設定">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <GroupBox Header="漫画ビューア設定" Style="{StaticResource GroupBoxStyle}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <TextBlock Grid.Row="0" 
+                                       Text="ファイルをダブルクリックした際に起動する漫画ビューアアプリを設定します" 
+                                       Style="{StaticResource HintTextBlockStyle}"/>
+                            
+                            <TextBlock Grid.Row="1" Text="漫画ビューアアプリのパス:" Style="{StaticResource LabelTextBlockStyle}"/>
+                            <Grid Grid.Row="2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Grid.Column="0" 
+                                         Text="{Binding MangaViewerPath, Mode=TwoWay}"
+                                         Margin="0,0,10,0" 
+                                         Height="25"
+                                         VerticalContentAlignment="Center"/>
+                                <Button Grid.Column="1" 
+                                        Content="参照..." 
+                                        Width="80" 
+                                        Command="{Binding SelectMangaViewerCommand}"/>
+                            </Grid>
+                        </Grid>
+                    </GroupBox>
+                </ScrollViewer>
+            </TabItem>
+            
+            <TabItem Header="ファイル名解析">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <GroupBox Header="ファイル名解析設定" Style="{StaticResource GroupBoxStyle}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <TextBlock Grid.Row="0" 
+                                       Text="ファイル名から属性情報を取得する正規表現パターンを設定します" 
+                                       Style="{StaticResource HintTextBlockStyle}"/>
+                            
+                            <TextBlock Grid.Row="1" Text="正規表現パターン:" Style="{StaticResource LabelTextBlockStyle}"/>
+                            <TextBox Grid.Row="2" 
+                                     x:Name="RegexPatternTextBox"
+                                     Text="{Binding FileNameRegexPattern, Mode=TwoWay}"
+                                     TextWrapping="Wrap"
+                                     AcceptsReturn="True"
+                                     Height="80"
+                                     Margin="0,0,0,10"
+                                     FontFamily="Consolas"
+                                     FontSize="12"/>
+                            
+                            <TextBlock Grid.Row="3" 
+                                       Text="グループ順序: 1=よみがな, 2=原作者, 3=作画者, 4=タイトル, 5/6=巻数" 
+                                       Style="{StaticResource HintTextBlockStyle}"/>
+                            
+                            <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,10,0,0">
+                                <Button Content="デフォルトに戻す" Width="120" Margin="0,0,10,0" Command="{Binding ResetRegexCommand}"/>
+                                <Button Content="テスト" Width="80" Command="{Binding TestRegexCommand}"/>
+                            </StackPanel>
+                        </Grid>
+                    </GroupBox>
+                </ScrollViewer>
+            </TabItem>
+            
+            <TabItem Header="メモリ設定">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <GroupBox Header="メモリ設定" Style="{StaticResource GroupBoxStyle}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="メモリ使用上限:" Style="{StaticResource LabelTextBlockStyle}"/>
+                        <Slider Grid.Row="0" Grid.Column="1" 
+                                x:Name="MemorySlider"
+                                Minimum="1" Maximum="16" 
+                                TickFrequency="1" 
+                                ValueChanged="MemorySlider_ValueChanged"
+                                Style="{StaticResource SliderStyle}"/>
+                        <TextBlock Grid.Row="0" Grid.Column="2" 
+                                   Text="{Binding MaxMemoryUsage, Converter={StaticResource MemorySizeConverter}}" 
+                                   Style="{StaticResource ValueTextBlockStyle}"/>
+                        
+                        <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" 
+                                   Text="1 GB 〜 16 GB" 
+                                   Style="{StaticResource HintTextBlockStyle}"/>
+                        
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="キャッシュサイズ:" Style="{StaticResource LabelTextBlockStyle}"/>
+                        <Slider Grid.Row="2" Grid.Column="1" 
+                                x:Name="CacheSlider"
+                                Minimum="0.25" Maximum="4" 
+                                TickFrequency="0.25" 
+                                ValueChanged="CacheSlider_ValueChanged"
+                                Style="{StaticResource SliderStyle}"/>
+                        <TextBlock Grid.Row="2" Grid.Column="2" 
+                                   Text="{Binding CacheSize, Converter={StaticResource MemorySizeConverter}}" 
+                                   Style="{StaticResource ValueTextBlockStyle}"/>
+                        
+                        <TextBlock Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" 
+                                   Text="256 MB 〜 4 GB" 
+                                   Style="{StaticResource HintTextBlockStyle}"/>
+                    </Grid>
+                </GroupBox>
+                </ScrollViewer>
+            </TabItem>
+            
+            <TabItem Header="フォント設定">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <GroupBox Header="フォントサイズ設定" Style="{StaticResource GroupBoxStyle}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="80"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" 
+                                       Text="画面とボタンのフォントサイズを調整できます。" 
+                                       Style="{StaticResource HintTextBlockStyle}"/>
+                            
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="UI フォントサイズ:" Style="{StaticResource LabelTextBlockStyle}"/>
+                            <Slider Grid.Row="1" Grid.Column="1" 
+                                    Minimum="8" Maximum="20" 
+                                    TickFrequency="1" 
+                                    Value="{Binding UiFontSize}"
+                                    Style="{StaticResource SliderStyle}"/>
+                            <TextBlock Grid.Row="1" Grid.Column="2" 
+                                       Text="{Binding UiFontSize, StringFormat={}{0:F0}px}" 
+                                       Style="{StaticResource ValueTextBlockStyle}"/>
+                            
+                            <TextBlock Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" 
+                                       Text="メニュー、ラベル、テキストボックスなどのフォントサイズ" 
+                                       Style="{StaticResource HintTextBlockStyle}"/>
+                            
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="ボタンフォントサイズ:" Style="{StaticResource LabelTextBlockStyle}"/>
+                            <Slider Grid.Row="3" Grid.Column="1" 
+                                    Minimum="8" Maximum="20" 
+                                    TickFrequency="1" 
+                                    Value="{Binding ButtonFontSize}"
+                                    Style="{StaticResource SliderStyle}"/>
+                            <TextBlock Grid.Row="3" Grid.Column="2" 
+                                       Text="{Binding ButtonFontSize, StringFormat={}{0:F0}px}" 
+                                       Style="{StaticResource ValueTextBlockStyle}"/>
+                            
+                            <TextBlock Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" 
+                                       Text="ツールバーのボタンなどのフォントサイズ" 
+                                       Style="{StaticResource HintTextBlockStyle}"/>
+                        </Grid>
+                    </GroupBox>
+                </ScrollViewer>
+            </TabItem>
+            
+            <TabItem Header="メンテナンス">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <GroupBox Header="データベースメンテナンス" Style="{StaticResource GroupBoxStyle}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <TextBlock Grid.Row="0" 
+                                       Text="データベースを最適化して、削除されたデータの領域を回収します。" 
+                                       Style="{StaticResource HintTextBlockStyle}"/>
+                            
+                            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,15,0,10">
+                                <Button Content="データベースを最適化" 
+                                        Width="150" 
+                                        Height="30"
+                                        Command="{Binding OptimizeDatabaseCommand}"
+                                        IsEnabled="{Binding IsNotOptimizing}"/>
+                                <TextBlock Text="{Binding OptimizationStatus}" 
+                                           VerticalAlignment="Center" 
+                                           Margin="15,0,0,0"
+                                           Foreground="Blue"/>
+                            </StackPanel>
+                            
+                            <TextBlock Grid.Row="2" 
+                                       Text="{Binding DatabaseOptimizationResult}" 
+                                       Style="{StaticResource HintTextBlockStyle}"
+                                       Foreground="Green"
+                                       Visibility="{Binding DatabaseOptimizationResultVisibility}"/>
+                        </Grid>
+                    </GroupBox>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+        
+        <!-- ボタン -->
+        <Border Grid.Row="1" 
+                BorderBrush="#CCCCCC" 
+                BorderThickness="0,1,0,0" 
+                Padding="0,15,0,0" 
+                Margin="0,10,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="デフォルトに戻す" Width="160" Margin="0,0,10,0" Command="{Binding ResetSettingsCommand}" ToolTip="デフォルトに戻す (Ctrl+R)"/>
+                <Button Content="適用" Width="110" Margin="0,0,10,0" Command="{Binding SaveSettingsCommand}" ToolTip="適用 (Ctrl+S)"/>
+                <Button Content="閉じる" Width="120" Command="{Binding CancelCommand}" CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}" ToolTip="閉じる (Ctrl+W)"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

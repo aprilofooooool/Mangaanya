@@ -1,0 +1,680 @@
+<Window x:Class="Mangaanya.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:converters="clr-namespace:Mangaanya.Converters"
+        xmlns:controls="clr-namespace:Mangaanya.Controls"
+        Title="Mangaanya" 
+        Height="1080" Width="1920"
+        MinHeight="768" MinWidth="1024"
+        WindowStartupLocation="Manual"
+        FontSize="12">
+    
+    <Window.InputBindings>
+        <KeyBinding Key="U" Modifiers="Ctrl" Command="{Binding IncrementalScanCommand}"/>
+        <KeyBinding Key="F5" Command="{Binding ClearFolderFilterCommand}"/>
+        <KeyBinding Key="O" Modifiers="Ctrl" Command="{Binding SelectFolderCommand}"/>
+        <KeyBinding Key="T" Modifiers="Ctrl" Command="{Binding GenerateThumbnailsCommand}"/>
+        <KeyBinding Key="G" Modifiers="Ctrl" Command="{Binding BulkEditCommand}"/>
+        <KeyBinding Key="R" Modifiers="Ctrl" Command="{Binding ResetSortCommand}"/>
+    </Window.InputBindings>
+    
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <converters:LazyThumbnailConverterOptimized x:Key="LazyThumbnailConverter"/>
+        <converters:RatingDisplayConverter x:Key="RatingDisplayConverter"/>
+        <converters:RatingColorConverter x:Key="RatingColorConverter"/>
+        <converters:RatingFontWeightConverter x:Key="RatingFontWeightConverter"/>
+        
+        <!-- MangaFilesのCollectionViewSource -->
+        <CollectionViewSource x:Key="MangaFilesViewSource" 
+                              Source="{Binding MangaFiles}"/>
+        
+        <!-- 角が丸い枠線のないボタンスタイル -->
+        <Style x:Key="RoundedButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#E8E8E8"/>
+            <Setter Property="Foreground" Value="#333333"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#D8D8D8"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#C8C8C8"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="#F8F8F8"/>
+                                <Setter Property="Foreground" Value="#AAAAAA"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <!-- 危険な操作用の薄い赤色ボタンスタイル -->
+        <Style x:Key="DangerousButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#FFE8E8"/>
+            <Setter Property="Foreground" Value="#CC3333"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#FFD8D8"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#FFC8C8"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="#F8F8F8"/>
+                                <Setter Property="Foreground" Value="#AAAAAA"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <!-- 角が丸いテキストボックススタイル -->
+        <Style x:Key="RoundedTextBoxStyle" TargetType="TextBox">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="BorderBrush" Value="#CCCCCC"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Style.Triggers>
+                <Trigger Property="IsFocused" Value="True">
+                    <Setter Property="BorderBrush" Value="#4A90E2"/>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="BorderBrush" Value="#999999"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        
+        <!-- 統一通知システムのアニメーション -->
+        <Storyboard x:Key="NotificationShowAnimation">
+            <DoubleAnimation Storyboard.TargetName="UnifiedNotification"
+                           Storyboard.TargetProperty="Opacity"
+                           From="0" To="1" Duration="0:0:0.2"/>
+        </Storyboard>
+        
+        <Storyboard x:Key="NotificationHideAnimation">
+            <DoubleAnimation Storyboard.TargetName="UnifiedNotification"
+                           Storyboard.TargetProperty="Opacity"
+                           From="1" To="0" Duration="0:0:0.2"/>
+        </Storyboard>
+        
+        <!-- DataGridの行内容を縦中央揃えにするスタイル -->
+        <Style x:Key="CenterAlignedDataGridCell" TargetType="DataGridCell">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridCell">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter VerticalAlignment="Center" 
+                                            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <!-- DataGridの選択行を太字にするスタイル -->
+        <Style x:Key="BoldSelectedDataGridRow" TargetType="DataGridRow">
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="FontWeight" Value="Bold"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+    
+    <Grid x:Name="MainGrid">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="65"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="280" MinWidth="150"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*" MinWidth="400"/>
+        </Grid.ColumnDefinitions>
+
+
+
+        <!-- ツールバー -->
+        <Border Grid.Row="0" Grid.ColumnSpan="3" 
+                BorderBrush="Gray"
+                BorderThickness="0,0,0,1"
+                Background="#F8F8F8">
+            <StackPanel Orientation="Horizontal" 
+                        Margin="12,10" 
+                        VerticalAlignment="Center">
+                
+                <!-- 検索（一番左に移動） -->
+                <Border Background="White" 
+                        BorderBrush="#CCCCCC" 
+                        BorderThickness="1" 
+                        CornerRadius="6" 
+                        Width="200" 
+                        Height="32" 
+                        Margin="4,4,12,4">
+                    <TextBox x:Name="SearchBox" 
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             VerticalAlignment="Center" 
+                             VerticalContentAlignment="Center"
+                             HorizontalContentAlignment="Left"
+                             ToolTip="リアルタイム検索"
+                             Background="Transparent"
+                             Foreground="Black"
+                             BorderThickness="0"
+                             FontSize="12"
+                             Padding="8,0"/>
+                </Border>
+                <Rectangle Width="1" Height="30" Fill="LightGray" Margin="8,0"/>
+                
+                <!-- 設定 -->
+                <Button Content="設定" Command="{Binding OpenSettingsCommand}" 
+                        Width="100" Height="36" Margin="4"
+                        Style="{StaticResource RoundedButtonStyle}"/>
+                <Rectangle Width="1" Height="30" Fill="LightGray" Margin="8,0"/>
+                
+                <!-- 基本操作 -->
+                <Button Content="差分スキャン" Command="{Binding IncrementalScanCommand}" 
+                        Width="100" Height="36" Margin="4"
+                        Style="{StaticResource RoundedButtonStyle}"
+                        ToolTip="差分スキャン (Ctrl+U)"/>
+                <Button Content="全て表示" Command="{Binding ClearFolderFilterCommand}" 
+                        Width="100" Height="36" Margin="4"
+                        Style="{StaticResource RoundedButtonStyle}"
+                        ToolTip="全て表示 (F5)"/>
+                
+                <!-- フォルダ操作 -->
+                <Button Content="フォルダ追加" Command="{Binding SelectFolderCommand}" 
+                        Width="100" Height="36" Margin="4"
+                        Style="{StaticResource RoundedButtonStyle}"
+                        ToolTip="フォルダ追加 (Ctrl+O)"/>
+                <Rectangle Width="1" Height="30" Fill="LightGray" Margin="8,0"/>
+                
+                <!-- サムネイル操作 -->
+                <Button Content="サムネイル生成" Command="{Binding GenerateThumbnailsCommand}" 
+                        Width="100" Height="36" Margin="4"
+                        Style="{StaticResource RoundedButtonStyle}"
+                        ToolTip="サムネイル生成 (Ctrl+T)"/>
+                <Rectangle Width="1" Height="30" Fill="LightGray" Margin="8,0"/>
+                
+                <!-- AI操作 -->
+                <Button Content="タグ取得" Command="{Binding BulkEditCommand}" 
+                        Width="100" Height="36" Margin="4"
+                        Style="{StaticResource RoundedButtonStyle}"
+                        ToolTip="タグ取得 (Ctrl+G)"/>
+                <Rectangle Width="1" Height="30" Fill="LightGray" Margin="8,0"/>
+                
+                <!-- 危険な操作（一番右、薄い赤色） -->
+                <Button Content="再スキャン" Command="{Binding ScanFolderCommand}" 
+                        Width="100" Height="36" Margin="4"
+                        Style="{StaticResource DangerousButtonStyle}"/>
+                <Button Content="フォルダ削除" Command="{Binding DeleteFoldersCommand}" 
+                        Width="100" Height="36" Margin="4"
+                        Style="{StaticResource DangerousButtonStyle}"/>
+                <Button Content="ファイル削除" Command="{Binding DeleteFilesCommand}" 
+                        Width="100" Height="36" Margin="4"
+                        Style="{StaticResource DangerousButtonStyle}"/>
+
+            </StackPanel>
+        </Border>
+
+
+
+        <!-- フォルダリストエリア（左側） -->
+        <Grid Grid.Row="2" Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>  <!-- チェックボックスエリア -->
+                <RowDefinition Height="*"/>     <!-- フォルダリスト -->
+            </Grid.RowDefinitions>
+            
+            <!-- チェックボックスエリア -->
+            <Border Grid.Row="0" 
+                    Background="#F8F8F8" 
+                    BorderBrush="LightGray" 
+                    BorderThickness="0,0,0,1" 
+                    Padding="8,6">
+                <CheckBox Content="サブフォルダも対象" 
+                          IsChecked="{Binding IncludeSubfolders, Mode=TwoWay}"
+                          FontSize="12"
+                          VerticalAlignment="Center"/>
+            </Border>
+            
+            <!-- フォルダリスト -->
+            <ListBox Grid.Row="1"
+                     x:Name="FolderListBox"
+                     ItemsSource="{Binding FolderDisplayItems}" 
+                     SelectedValuePath="FolderPath"
+                     SelectedValue="{Binding SelectedScanFolder, Mode=TwoWay}"
+                     SelectionChanged="FolderListBox_SelectionChanged"
+                     KeyDown="FolderListBox_KeyDown"
+                     Margin="5">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Vertical" Margin="2">
+                            <TextBlock Text="{Binding FolderName}" TextWrapping="Wrap" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding StatisticsText}" FontSize="10" Foreground="Gray" Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Grid>
+        
+        <!-- GridSplitter -->
+        <GridSplitter Grid.Row="2" Grid.Column="1"
+                      Width="5"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Stretch"
+                      Background="LightGray"
+                      ShowsPreview="True"/>
+        
+        <!-- メインコンテンツ（右側） -->
+        <DataGrid Grid.Row="2" Grid.Column="2"
+                  x:Name="MangaFilesGrid"
+                  ItemsSource="{Binding Source={StaticResource MangaFilesViewSource}}"
+                  SelectedItem="{Binding SelectedMangaFile}"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  GridLinesVisibility="Horizontal"
+                  HeadersVisibility="Column"
+                  SelectionMode="Extended"
+                  SelectionUnit="FullRow"
+                  SelectionChanged="MangaFilesGrid_SelectionChanged"
+                  MouseDoubleClick="MangaFilesGrid_MouseDoubleClick"
+                  KeyDown="MangaFilesGrid_KeyDown"
+                  PreviewMouseLeftButtonDown="MangaFilesGrid_PreviewMouseLeftButtonDown"
+                  CellStyle="{StaticResource CenterAlignedDataGridCell}"
+                  RowStyle="{StaticResource BoldSelectedDataGridRow}"
+
+                  EnableColumnVirtualization="True"
+                  EnableRowVirtualization="True"
+                  ColumnWidth="*"
+                  CanUserReorderColumns="True"
+                  
+                  AlternatingRowBackground="#F5F5F5"
+                  RowBackground="White">
+            
+            <DataGrid.ContextMenu>
+                <ContextMenu x:Name="FileListContextMenu" Opened="FileListContextMenu_Opened">
+                    <MenuItem Header="評価">
+                        <MenuItem.Icon>
+                            <TextBlock x:Name="RatingMenuIcon" Text="★" FontSize="14" Foreground="Gold"/>
+                        </MenuItem.Icon>
+                        <MenuItem x:Name="Rating1MenuItem" Command="{Binding SetRatingCommand}" CommandParameter="1">
+                            <MenuItem.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="★☆☆☆☆" FontSize="14" Foreground="Gold" Width="70"/>
+                                    <TextBlock Text="(1)" FontSize="12" Foreground="#666666" Margin="8,0,0,0"/>
+                                    <TextBlock x:Name="Rating1Check" Text="✓" FontSize="12" Foreground="Green" 
+                                               Margin="8,0,0,0" Visibility="Collapsed" FontWeight="Bold"/>
+                                </StackPanel>
+                            </MenuItem.Header>
+                        </MenuItem>
+                        <MenuItem x:Name="Rating2MenuItem" Command="{Binding SetRatingCommand}" CommandParameter="2">
+                            <MenuItem.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="★★☆☆☆" FontSize="14" Foreground="Gold" Width="70"/>
+                                    <TextBlock Text="(2)" FontSize="12" Foreground="#666666" Margin="8,0,0,0"/>
+                                    <TextBlock x:Name="Rating2Check" Text="✓" FontSize="12" Foreground="Green" 
+                                               Margin="8,0,0,0" Visibility="Collapsed" FontWeight="Bold"/>
+                                </StackPanel>
+                            </MenuItem.Header>
+                        </MenuItem>
+                        <MenuItem x:Name="Rating3MenuItem" Command="{Binding SetRatingCommand}" CommandParameter="3">
+                            <MenuItem.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="★★★☆☆" FontSize="14" Foreground="Gold" Width="70"/>
+                                    <TextBlock Text="(3)" FontSize="12" Foreground="#666666" Margin="8,0,0,0"/>
+                                    <TextBlock x:Name="Rating3Check" Text="✓" FontSize="12" Foreground="Green" 
+                                               Margin="8,0,0,0" Visibility="Collapsed" FontWeight="Bold"/>
+                                </StackPanel>
+                            </MenuItem.Header>
+                        </MenuItem>
+                        <MenuItem x:Name="Rating4MenuItem" Command="{Binding SetRatingCommand}" CommandParameter="4">
+                            <MenuItem.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="★★★★☆" FontSize="14" Foreground="Gold" Width="70"/>
+                                    <TextBlock Text="(4)" FontSize="12" Foreground="#666666" Margin="8,0,0,0"/>
+                                    <TextBlock x:Name="Rating4Check" Text="✓" FontSize="12" Foreground="Green" 
+                                               Margin="8,0,0,0" Visibility="Collapsed" FontWeight="Bold"/>
+                                </StackPanel>
+                            </MenuItem.Header>
+                        </MenuItem>
+                        <MenuItem x:Name="Rating5MenuItem" Command="{Binding SetRatingCommand}" CommandParameter="5">
+                            <MenuItem.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="★★★★★" FontSize="14" Foreground="Gold" Width="70"/>
+                                    <TextBlock Text="(5)" FontSize="12" Foreground="#666666" Margin="8,0,0,0"/>
+                                    <TextBlock x:Name="Rating5Check" Text="✓" FontSize="12" Foreground="Green" 
+                                               Margin="8,0,0,0" Visibility="Collapsed" FontWeight="Bold"/>
+                                </StackPanel>
+                            </MenuItem.Header>
+                        </MenuItem>
+                        <Separator/>
+                        <MenuItem x:Name="ClearRatingMenuItem" Command="{Binding ClearRatingCommand}">
+                            <MenuItem.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="評価を解除" FontSize="12" Foreground="#333333" Width="70"/>
+                                    <TextBlock x:Name="ClearRatingCheck" Text="✓" FontSize="12" Foreground="Green" 
+                                               Margin="8,0,0,0" Visibility="Collapsed" FontWeight="Bold"/>
+                                </StackPanel>
+                            </MenuItem.Header>
+                            <MenuItem.Icon>
+                                <TextBlock Text="✕" FontSize="12" Foreground="Red"/>
+                            </MenuItem.Icon>
+                        </MenuItem>
+                    </MenuItem>
+                    <Separator/>
+                    <MenuItem x:Name="MoveFilesMenuItem" Header="移動" Click="MoveFilesMenuItem_Click">
+                        <MenuItem.Icon>
+                            <TextBlock Text="📁" FontSize="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <Separator/>
+                    <MenuItem Header="ソートをリセット (Ctrl+R)" Click="ResetSortMenuItem_Click">
+                        <MenuItem.Icon>
+                            <TextBlock Text="↕" FontSize="12"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                </ContextMenu>
+            </DataGrid.ContextMenu>
+            
+            <DataGrid.Columns>
+                <!-- 1. サムネイル -->
+                <DataGridTemplateColumn Header="サムネイル" Width="190" CanUserResize="True" IsReadOnly="True">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Image Source="{Binding ., Converter={StaticResource LazyThumbnailConverter}}" 
+                                   MaxWidth="{Binding DataContext.ThumbnailMaxWidth, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                   MaxHeight="{Binding DataContext.ThumbnailMaxHeight, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                   Stretch="Uniform" 
+                                   StretchDirection="DownOnly"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Margin="0,2,0,2"
+                                   MouseEnter="ThumbnailImage_MouseEnter"
+                                   MouseLeave="ThumbnailImage_MouseLeave"
+                                   MouseMove="ThumbnailImage_MouseMove"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <!-- 2. パス -->
+                <DataGridTextColumn Header="パス" Binding="{Binding FolderPath}" Width="300" CanUserResize="True" IsReadOnly="True"/>
+                <!-- 3. ファイル名 -->
+                <DataGridTextColumn Header="ファイル名" Binding="{Binding FileName}" Width="200" CanUserResize="True" IsReadOnly="True"/>
+                <!-- 4. サイズ -->
+                <DataGridTextColumn Header="サイズ" Binding="{Binding FileSizeFormatted}" Width="80" CanUserResize="True" IsReadOnly="True"/>
+                <!-- 5. 種類 -->
+                <DataGridTextColumn Header="種類" Binding="{Binding FileType}" Width="60" CanUserResize="True" IsReadOnly="True"/>
+                <!-- 6. 作成日時 -->
+                <DataGridTextColumn Header="作成日時" Binding="{Binding CreatedDate, StringFormat=yyyy/MM/dd HH:mm}" Width="120" CanUserResize="True" IsReadOnly="True"/>
+                <!-- 7. 更新日時 -->
+                <DataGridTextColumn Header="更新日時" Binding="{Binding ModifiedDate, StringFormat=yyyy/MM/dd HH:mm}" Width="120" CanUserResize="True" IsReadOnly="True"/>
+                <!-- 8. かな -->
+                <DataGridTextColumn Header="かな" Binding="{Binding AuthorReading}" Width="100" CanUserResize="True"/>
+                <!-- 9. 原作者 -->
+                <DataGridTextColumn Header="原作者" Binding="{Binding OriginalAuthor}" Width="100" CanUserResize="True"/>
+                <!-- 10. 作画者 -->
+                <DataGridTextColumn Header="作画者" Binding="{Binding Artist}" Width="100" CanUserResize="True"/>
+                <!-- 11. タイトル -->
+                <DataGridTextColumn Header="タイトル" Binding="{Binding Title}" Width="150" CanUserResize="True"/>
+                <!-- 12. 巻数 -->
+                <DataGridTextColumn Header="巻数" Binding="{Binding VolumeDisplay}" Width="60" CanUserResize="True"/>
+                <!-- 13. タグ -->
+                <DataGridTextColumn Header="タグ" Binding="{Binding Tags}" Width="200" CanUserResize="True"/>
+                <!-- 14. ジャンル -->
+                <DataGridTextColumn Header="ジャンル" Binding="{Binding Genre}" Width="100" CanUserResize="True"/>
+                <!-- 15. 出版社 -->
+                <DataGridTextColumn Header="出版社" Binding="{Binding Publisher}" Width="100" CanUserResize="True"/>
+                <!-- 16. 発行日 -->
+                <DataGridTextColumn Header="発行日" Binding="{Binding PublishDate, StringFormat=yyyy/MM/dd}" Width="100" CanUserResize="True"/>
+                <!-- 17. 評価 -->
+                <DataGridTemplateColumn Header="評価" Width="80" CanUserResize="True" IsReadOnly="True">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Rating, Converter={StaticResource RatingDisplayConverter}}"
+                                       Foreground="{Binding Rating, Converter={StaticResource RatingColorConverter}}"
+                                       FontWeight="{Binding Rating, Converter={StaticResource RatingFontWeightConverter}}"
+                                       FontSize="12"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       ToolTip="{Binding RatingTooltip}"
+                                       Cursor="Hand"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <!-- 18. タグ取得済 -->
+                <DataGridCheckBoxColumn Header="タグ取得済" Binding="{Binding IsAIProcessed}" Width="80" CanUserResize="True"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- ステータスバー -->
+        <StatusBar Grid.Row="3" Grid.ColumnSpan="3">
+            <!-- ステータスメッセージ -->
+            <StatusBarItem>
+                <TextBlock Text="{Binding StatusMessage}"/>
+            </StatusBarItem>
+            <!-- ファイル数メッセージ -->
+            <StatusBarItem HorizontalAlignment="Right">
+                <TextBlock Text="{Binding FileCountMessage}"/>
+            </StatusBarItem>
+        </StatusBar>
+        
+        <!-- メイン画面中央のスピナーオーバーレイ -->
+        <Grid Grid.Row="0" Grid.RowSpan="4" Grid.ColumnSpan="3" 
+              Background="Transparent" 
+              Visibility="{Binding IsProcessing, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <!-- 円形スピナー表示 -->
+            <Viewbox Width="80" Height="80" 
+                     HorizontalAlignment="Center" 
+                     VerticalAlignment="Center">
+                <Canvas Width="120" Height="120">
+                    <Canvas.Resources>
+                        <Storyboard x:Key="SpinnerStoryboard" RepeatBehavior="Forever">
+                            <DoubleAnimation Storyboard.TargetName="SpinnerRotate"
+                                           Storyboard.TargetProperty="Angle"
+                                           From="0" To="360" Duration="0:0:1"/>
+                        </Storyboard>
+                    </Canvas.Resources>
+                    <Canvas.RenderTransform>
+                        <RotateTransform x:Name="SpinnerRotate" CenterX="60" CenterY="60"/>
+                    </Canvas.RenderTransform>
+                    <Canvas.Triggers>
+                        <EventTrigger RoutedEvent="Canvas.Loaded">
+                            <BeginStoryboard Storyboard="{StaticResource SpinnerStoryboard}"/>
+                        </EventTrigger>
+                    </Canvas.Triggers>
+                    
+                    <!-- スピナーの円弧 -->
+                    <Path Stroke="DodgerBlue" StrokeThickness="8" StrokeStartLineCap="Round" StrokeEndLineCap="Round">
+                        <Path.Data>
+                            <PathGeometry>
+                                <PathFigure StartPoint="60,10">
+                                    <ArcSegment Point="110,60" Size="50,50" SweepDirection="Clockwise" IsLargeArc="False"/>
+                                </PathFigure>
+                            </PathGeometry>
+                        </Path.Data>
+                    </Path>
+                </Canvas>
+            </Viewbox>
+        </Grid>
+        
+        <!-- サムネイルポップアップ -->
+        <controls:ThumbnailPopup x:Name="ThumbnailPopupControl"
+                                Grid.Row="0" Grid.RowSpan="4" Grid.ColumnSpan="3"
+                                Visibility="Collapsed"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Panel.ZIndex="1000"/>
+        
+        <!-- 統一通知システム -->
+        <Border x:Name="UnifiedNotification"
+                Grid.Row="0" Grid.RowSpan="4" Grid.ColumnSpan="3"
+                Background="#CC000000"
+                Visibility="Collapsed"
+                Panel.ZIndex="2000"
+                Opacity="0"
+                Focusable="True"
+                KeyDown="UnifiedNotification_KeyDown">
+            <Border Background="White"
+                    CornerRadius="12"
+                    Padding="24,16"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    MaxWidth="700"
+                    MinWidth="300">
+                <Border.Effect>
+                    <DropShadowEffect Color="Black" Direction="270" ShadowDepth="4" Opacity="0.3" BlurRadius="8"/>
+                </Border.Effect>
+                <StackPanel HorizontalAlignment="Center">
+                    <!-- アイコンとタイトル行 -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,8">
+                        <TextBlock x:Name="NotificationIcon" 
+                                   Text="ℹ" 
+                                   FontSize="24" 
+                                   Foreground="#4A90E2" 
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,12,0"/>
+                        <TextBlock x:Name="NotificationTitle" 
+                                   Text="通知" 
+                                   FontSize="16" 
+                                   FontWeight="Bold" 
+                                   Foreground="#333333"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <!-- メッセージ -->
+                    <TextBlock x:Name="NotificationMessage" 
+                               Text="メッセージ内容" 
+                               FontSize="12" 
+                               Foreground="#666666"
+                               HorizontalAlignment="Left"
+                               TextWrapping="Wrap"
+                               TextAlignment="Left"
+                               MaxWidth="650"
+                               FontFamily="Consolas, 'Courier New', monospace"/>
+                    <!-- 通知用OKボタン -->
+                    <Button x:Name="NotificationCloseButton" 
+                            Content="OK" 
+                            Width="80" 
+                            Height="32" 
+                            Margin="0,12,0,0"
+                            Style="{StaticResource RoundedButtonStyle}"
+                            Click="NotificationCloseButton_Click"
+                            IsDefault="True"/>
+                    
+                    <!-- サムネイル生成モード選択 -->
+                    <StackPanel x:Name="ThumbnailModeSelection" 
+                                Margin="0,16,0,0"
+                                Visibility="Collapsed">
+                        <TextBlock x:Name="ThumbnailFileCountText" 
+                                   Text="対象ファイル数: 0件"
+                                   Margin="0,0,0,12"
+                                   FontSize="12"
+                                   HorizontalAlignment="Center"/>
+                        
+                        <RadioButton x:Name="OnlyMissingRadio" 
+                                     Content="未生成のみ生成（推奨）"
+                                     IsChecked="True"
+                                     Margin="0,0,0,8"
+                                     FontSize="12"
+                                     HorizontalAlignment="Left"/>
+                        
+                        <RadioButton x:Name="RegenerateAllRadio" 
+                                     Content="全て再生成"
+                                     Margin="0,0,0,16"
+                                     FontSize="12"
+                                     HorizontalAlignment="Left"/>
+                    </StackPanel>
+                    
+                    <!-- 確認ダイアログ用ボタン -->
+                    <StackPanel x:Name="NotificationButtons" 
+                                Orientation="Horizontal" 
+                                HorizontalAlignment="Center" 
+                                Margin="0,16,0,0"
+                                Visibility="Collapsed">
+                        <Button x:Name="NotificationOkButton" 
+                                Content="OK" 
+                                Width="80" 
+                                Height="32" 
+                                Margin="0,0,8,0"
+                                Style="{StaticResource RoundedButtonStyle}"
+                                Click="NotificationOkButton_Click"/>
+                        <Button x:Name="NotificationCancelButton" 
+                                Content="キャンセル" 
+                                Width="80" 
+                                Height="32"
+                                Style="{StaticResource RoundedButtonStyle}"
+                                Click="NotificationCancelButton_Click"/>
+                    </StackPanel>
+                    
+                    <!-- 競合解決ダイアログ用ボタン -->
+                    <StackPanel x:Name="ConflictResolutionButtons" 
+                                Orientation="Horizontal" 
+                                HorizontalAlignment="Center" 
+                                Margin="0,16,0,0"
+                                Visibility="Collapsed">
+                        <Button x:Name="OverwriteButton" 
+                                Content="上書き" 
+                                Width="80" 
+                                Height="32" 
+                                Margin="0,0,8,0"
+                                Style="{StaticResource RoundedButtonStyle}"
+                                Click="OverwriteButton_Click"/>
+                        <Button x:Name="SkipButton" 
+                                Content="スキップ" 
+                                Width="80" 
+                                Height="32" 
+                                Margin="0,0,8,0"
+                                Style="{StaticResource RoundedButtonStyle}"
+                                Click="SkipButton_Click"/>
+                        <Button x:Name="ConflictCancelButton" 
+                                Content="キャンセル" 
+                                Width="80" 
+                                Height="32"
+                                Style="{StaticResource RoundedButtonStyle}"
+                                Click="ConflictCancelButton_Click"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Border>
+    </Grid>
+</Window>

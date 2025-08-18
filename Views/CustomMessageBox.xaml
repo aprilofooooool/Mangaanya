@@ -1,0 +1,33 @@
+<Window x:Class="Mangaanya.Views.CustomMessageBox"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="確認" 
+        Width="450"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        FontSize="12">
+    
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- メッセージ -->
+        <TextBlock Grid.Row="0"
+                   x:Name="MessageText" 
+                   TextWrapping="Wrap"
+                   FontSize="12"
+                   LineHeight="18"
+                   Margin="0,10,0,15"/>
+        
+        <!-- ボタン -->
+        <StackPanel Grid.Row="1" 
+                    x:Name="ButtonPanel"
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Right"
+                    Margin="0,0,0,0">
+        </StackPanel>
+    </Grid>
+</Window>
